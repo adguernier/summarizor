@@ -240,6 +240,66 @@ export async function handleSummarizeCommand(
     console.log(`[SUMMARIZE] OpenAI API key is configured`);
   }
 
+  // In debug mode, skip everything and return mock response immediately
+  if (debug) {
+    console.log(
+      `[SUMMARIZE] DEBUG MODE - Skipping article fetch and OpenAI calls`
+    );
+    console.log(
+      `[SUMMARIZE] Creating mock response for Discord communication test`
+    );
+
+    const tags = "Debug / Mock Data";
+    const summary =
+      "This is a DEBUG summary. Neither article fetching nor OpenAI was called. This response confirms that Discord communication (receiving commands and sending responses) is working correctly.";
+    const interest =
+      "This DEBUG mode helps identify if the issue is with external dependencies (article fetching/OpenAI) or Discord communication. If you see this message, your bot's Discord integration is working perfectly!";
+    const title = "Debug Mode - Mock Article";
+
+    const description =
+      `🏷️ **Tag:** ${tags}\n\n` +
+      `🔗 **Link:** ${url}\n\n` +
+      `📖 **Summary:**\n${summary}\n\n` +
+      `💡 **Why it's interesting:**\n${interest}`;
+
+    const urlId = storeUrlAndTags(url, tags);
+    console.log(`[SUMMARIZE] URL stored with ID: ${urlId}`);
+    console.log(`[SUMMARIZE] Returning mock response - no external calls made`);
+
+    return {
+      embeds: [
+        {
+          title: title,
+          color: 0xff9900, // Orange color for debug mode
+          description: description,
+          timestamp: new Date().toISOString(),
+          footer: {
+            text: "CuraBot - DEBUG MODE (No External Calls)",
+          },
+        },
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: "🔄 Regenerate",
+              custom_id: `regenerate_${urlId}`,
+            },
+            {
+              type: 2,
+              style: 2,
+              label: "✏️ Edit",
+              custom_id: `edit_${urlId}`,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   try {
     // Fetch article content
     console.log(`[SUMMARIZE] Fetching article content...`);
@@ -258,33 +318,19 @@ export async function handleSummarizeCommand(
       };
     }
 
-    // Generate tags, summary and interest explanation in parallel
-    let tags: string;
-    let summary: string;
-    let interest: string;
-
-    if (debug) {
-      console.log(`[SUMMARIZE] DEBUG MODE - Using mock data instead of OpenAI`);
-      tags = "Debug / Mock Data";
-      summary =
-        "This is a DEBUG summary. OpenAI was not called. The article content was successfully fetched and this response confirms Discord communication is working.";
-      interest =
-        "This DEBUG mode helps identify if the issue is with OpenAI API calls or Discord communication. If you see this message, Discord integration is working correctly.";
-      console.log(`[SUMMARIZE] Mock data created successfully`);
-    } else {
-      console.log(
-        `[SUMMARIZE] Generating AI content (tags, summary, interest)...`
-      );
-      [tags, summary, interest] = await Promise.all([
-        generateTags(content, title),
-        generateSummary(content, ""),
-        generateInterest(content, ""),
-      ]);
-      console.log(`[SUMMARIZE] AI content generated successfully`);
-      console.log(`[SUMMARIZE] - Tags: ${tags}`);
-      console.log(`[SUMMARIZE] - Summary length: ${summary.length}`);
-      console.log(`[SUMMARIZE] - Interest length: ${interest.length}`);
-    }
+    // Generate tags, summary and interest explanation in normal mode
+    console.log(
+      `[SUMMARIZE] Generating AI content (tags, summary, interest)...`
+    );
+    const [tags, summary, interest] = await Promise.all([
+      generateTags(content, title),
+      generateSummary(content, ""),
+      generateInterest(content, ""),
+    ]);
+    console.log(`[SUMMARIZE] AI content generated successfully`);
+    console.log(`[SUMMARIZE] - Tags: ${tags}`);
+    console.log(`[SUMMARIZE] - Summary length: ${summary.length}`);
+    console.log(`[SUMMARIZE] - Interest length: ${interest.length}`);
 
     // Build formatted description with emojis
     let description = "";
@@ -306,9 +352,7 @@ export async function handleSummarizeCommand(
           description: description,
           timestamp: new Date().toISOString(),
           footer: {
-            text: debug
-              ? "CuraBot - DEBUG MODE (Mock Data)"
-              : "CuraBot - AI-Powered Summarization",
+            text: "CuraBot - AI-Powered Summarization",
           },
         },
       ],
