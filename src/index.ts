@@ -7,6 +7,7 @@ import {
 } from "discord-interactions";
 import { handleSummarizeCommand } from "./commands/summarize";
 import { retrieveData } from "./utils/urlStore";
+import { discordRequest } from "./utils/discord";
 import axios from "axios";
 
 const app = express();
@@ -18,17 +19,17 @@ async function sendFollowUp(
   interactionToken: string,
   data: any
 ) {
-  const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
-  console.log(`[FOLLOW-UP] Sending follow-up to URL: ${url}`);
+  const endpoint = `webhooks/${applicationId}/${interactionToken}`;
+  console.log(`[FOLLOW-UP] Sending follow-up to endpoint: ${endpoint}`);
   try {
-    await axios.post(url, data, {
-      headers: {
-        "Content-Type": "application/json",
-      },
+    await discordRequest(endpoint, {
+      method: "POST",
+      body: data,
     });
+    console.log(`[FOLLOW-UP] Follow-up sent successfully`);
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Discord API Error:", error.response?.data);
+      console.error("[FOLLOW-UP] Discord API Error:", error.response?.data);
     }
     throw error;
   }
@@ -40,12 +41,18 @@ async function updateMessage(
   interactionToken: string,
   data: any
 ) {
-  const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`;
-  await axios.patch(url, data, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+  const endpoint = `webhooks/${applicationId}/${interactionToken}/messages/@original`;
+  console.log(`[UPDATE] Updating original message via endpoint: ${endpoint}`);
+  try {
+    await discordRequest(endpoint, {
+      method: "PATCH",
+      body: data,
+    });
+    console.log(`[UPDATE] Message updated successfully`);
+  } catch (error) {
+    console.error(`[UPDATE] Error updating message:`, error);
+    throw error;
+  }
 }
 
 // Interactions endpoint
