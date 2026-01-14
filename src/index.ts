@@ -13,6 +13,22 @@ import axios from "axios";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.post(
+  "/interactions",
+  verifyKeyMiddleware(process.env.PUBLIC_KEY!),
+  (req, res) => {
+    const interaction = req.body;
+    if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+      res.send({
+        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        data: {
+          content: "Hello world",
+        },
+      });
+    }
+  }
+);
+
 // Helper function to send follow-up messages
 async function sendFollowUp(
   applicationId: string,
@@ -56,7 +72,7 @@ async function updateMessage(
 }
 
 // Interactions endpoint
-app.post(
+/*app.post(
   "/interactions",
   verifyKeyMiddleware(process.env.PUBLIC_KEY!),
   async (req: Request, res: Response) => {
@@ -343,7 +359,7 @@ app.post(
     console.error("Unknown interaction type:", type);
     return res.status(400).json({ error: "unknown interaction type" });
   }
-);
+);*/
 
 // Health check endpoint
 app.get("/", (req: Request, res: Response) => {
