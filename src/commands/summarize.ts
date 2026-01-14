@@ -35,42 +35,98 @@ const openai = new OpenAI({
 async function fetchArticleContent(
   url: string
 ): Promise<{ title: string; content: string }> {
-  const response = await axios.get(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)",
-    },
-    timeout: 10000,
-  });
+  console.log(`[FETCH] Starting fetch for URL: ${url}`);
 
-  const $ = cheerio.load(response.data);
+  try {
+    console.log(`[FETCH] Making HTTP GET request...`);
+    const response = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; DiscordBot/1.0)",
+      },
+      timeout: 10000,
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500, // Accept all responses < 500
+    });
 
-  // Remove script, style, and nav elements
-  $("script, style, nav, header, footer, aside").remove();
+    console.log(`[FETCH] HTTP request completed - Status: ${response.status}`);
+    console.log(`[FETCH] Response size: ${response.data?.length || 0} bytes`);
+    console.log(`[FETCH] Content-Type: ${response.headers["content-type"]}`);
 
-  // Try to find the article title
-  let title =
-    $("h1").first().text().trim() ||
-    $("title").text().trim() ||
-    $('meta[property="og:title"]').attr("content") ||
-    "Article";
+    if (response.status >= 400) {
+      throw new Error(`HTTP ${response.status}: Failed to fetch article`);
+    }
 
-  // Try to find main content
-  let content =
-    $("article").text() ||
-    $("main").text() ||
-    $(".post-content").text() ||
-    $(".entry-content").text() ||
-    $("body").text();
+    console.log(`[FETCH] Loading HTML with Cheerio...`);
+    const $ = cheerio.load(response.data);
 
-  // Clean up whitespace
-  content = content.replace(/\s+/g, " ").trim();
+    // Remove script, style, and nav elements
+    console.log(`[FETCH] Cleaning HTML content...`);
+    $("script, style, nav, header, footer, aside").remove();
 
-  // Limit content length
-  if (content.length > 12000) {
-    content = content.substring(0, 12000) + "...";
+    // Try to find the article title
+    console.log(`[FETCH] Extracting article title...`);
+    let title =
+      $("h1").first().text().trim() ||
+      $("title").text().trim() ||
+      $('meta[property="og:title"]').attr("content") ||
+      "Article";
+    console.log(`[FETCH] Title extracted: ${title.substring(0, 100)}`);
+
+    // Try to find main content
+    console.log(`[FETCH] Extracting article content...`);
+    let content =
+      $("article").text() ||
+      $("main").text() ||
+      $(".post-content").text() ||
+      $(".entry-content").text() ||
+      $("body").text();
+
+    console.log(`[FETCH] Raw content length: ${content.length} characters`);
+
+    // Clean up whitespace
+    content = content.replace(/\s+/g, " ").trim();
+    console.log(`[FETCH] Cleaned content length: ${content.length} characters`);
+
+    // Limit content length
+    if (content.length > 12000) {
+      content = content.substring(0, 12000) + "...";
+      console.log(`[FETCH] Content truncated to 12000 characters`);
+    }
+
+    console.log(`[FETCH] Content extraction completed successfully`);
+    return { title, content };
+  } catch (error) {
+    console.error(`[FETCH] ERROR during article fetch:`, error);
+
+    if (axios.isAxiosError(error)) {
+      console.error(`[FETCH] Axios error details:`, {
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        timeout: error.code === "ECONNABORTED",
+        network: error.code === "ERR_NETWORK",
+      });
+
+      // Provide more specific error messages
+      if (error.code === "ECONNABORTED") {
+        throw new Error(`Timeout: Article took too long to load (>10s)`);
+      } else if (error.code === "ERR_NETWORK" || error.code === "ENOTFOUND") {
+        throw new Error(
+          `Network error: Cannot reach the URL. Check if the URL is accessible.`
+        );
+      } else if (error.code === "ECONNREFUSED") {
+        throw new Error(`Connection refused: The server is not responding.`);
+      } else if (error.response?.status) {
+        throw new Error(
+          `HTTP ${error.response.status}: ${error.response.statusText}`
+        );
+      }
+    }
+
+    // Re-throw the original error if we can't provide more context
+    throw error;
   }
-
-  return { title, content };
 }
 
 // Generate tags using OpenAI
