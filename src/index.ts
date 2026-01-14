@@ -277,41 +277,40 @@ async function handleSummarizeNormalMode(
   token: string,
   res: Response
 ) {
-  console.log(`[COMMAND] Sending deferred response...`);
-  res.send({
-    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
-  });
-  console.log(`[COMMAND] Deferred response sent, starting async processing`);
+  console.log(
+    `[COMMAND] Processing with deferred response (Vercel-compatible)...`
+  );
 
-  // Process the command asynchronously and send follow-up
-  (async () => {
-    try {
-      console.log(`📥 Processing article: ${url}`);
+  // On Vercel, we must complete ALL work before sending the response
+  // The function terminates after res.send(), so we can't do async work after
 
-      const response = await handleSummarizeCommand(url, false);
+  try {
+    console.log(`📥 Processing article: ${url}`);
 
-      console.log(`✅ Summary generated, sending to Discord`);
+    // Do all the work FIRST
+    const response = await handleSummarizeCommand(url, false);
 
-      // Send the actual response as a follow-up
-      await sendFollowUp(application_id, token, response);
+    console.log(`✅ Summary generated`);
 
-      console.log(`✅ Response sent successfully`);
-    } catch (error) {
-      console.error("❌ Error processing command:", error);
+    // Now send it directly as an immediate response
+    // This works because all processing is done
+    return res.send({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: response,
+    });
+  } catch (error) {
+    console.error("❌ Error processing command:", error);
 
-      // Send error message as follow-up
-      try {
-        await sendFollowUp(application_id, token, {
-          content: `❌ An error occurred while processing your request: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-          flags: 64,
-        });
-      } catch (followUpError) {
-        console.error("❌ Failed to send error follow-up:", followUpError);
-      }
-    }
-  })();
+    return res.send({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: {
+        content: `❌ An error occurred while processing your request: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        flags: 64,
+      },
+    });
+  }
 }
 
 // Handle summarize command
