@@ -17,6 +17,12 @@ export const SUMMARIZE_COMMAND = {
       description: "The URL of the article to summarize",
       required: true,
     },
+    {
+      type: 5, // BOOLEAN type
+      name: "debug",
+      description: "Debug mode - skip OpenAI calls and use mock data",
+      required: false,
+    },
   ],
 };
 
@@ -146,8 +152,12 @@ async function generateInterest(
 }
 
 // Command handler
-export async function handleSummarizeCommand(url: string) {
+export async function handleSummarizeCommand(
+  url: string,
+  debug: boolean = false
+) {
   console.log(`[SUMMARIZE] Starting summarization for URL: ${url}`);
+  console.log(`[SUMMARIZE] Debug mode: ${debug}`);
 
   // Validate URL format
   try {
@@ -161,8 +171,8 @@ export async function handleSummarizeCommand(url: string) {
     };
   }
 
-  // Check if OpenAI API key is configured
-  if (!process.env.OPENAI_API_KEY) {
+  // Check if OpenAI API key is configured (skip in debug mode)
+  if (!debug && !process.env.OPENAI_API_KEY) {
     console.error(`[SUMMARIZE] OpenAI API key not configured`);
     return {
       content:
@@ -170,7 +180,9 @@ export async function handleSummarizeCommand(url: string) {
       flags: 64,
     };
   }
-  console.log(`[SUMMARIZE] OpenAI API key is configured`);
+  if (!debug) {
+    console.log(`[SUMMARIZE] OpenAI API key is configured`);
+  }
 
   try {
     // Fetch article content
@@ -191,18 +203,32 @@ export async function handleSummarizeCommand(url: string) {
     }
 
     // Generate tags, summary and interest explanation in parallel
-    console.log(
-      `[SUMMARIZE] Generating AI content (tags, summary, interest)...`
-    );
-    const [tags, summary, interest] = await Promise.all([
-      generateTags(content, title),
-      generateSummary(content, ""),
-      generateInterest(content, ""),
-    ]);
-    console.log(`[SUMMARIZE] AI content generated successfully`);
-    console.log(`[SUMMARIZE] - Tags: ${tags}`);
-    console.log(`[SUMMARIZE] - Summary length: ${summary.length}`);
-    console.log(`[SUMMARIZE] - Interest length: ${interest.length}`);
+    let tags: string;
+    let summary: string;
+    let interest: string;
+
+    if (debug) {
+      console.log(`[SUMMARIZE] DEBUG MODE - Using mock data instead of OpenAI`);
+      tags = "Debug / Mock Data";
+      summary =
+        "This is a DEBUG summary. OpenAI was not called. The article content was successfully fetched and this response confirms Discord communication is working.";
+      interest =
+        "This DEBUG mode helps identify if the issue is with OpenAI API calls or Discord communication. If you see this message, Discord integration is working correctly.";
+      console.log(`[SUMMARIZE] Mock data created successfully`);
+    } else {
+      console.log(
+        `[SUMMARIZE] Generating AI content (tags, summary, interest)...`
+      );
+      [tags, summary, interest] = await Promise.all([
+        generateTags(content, title),
+        generateSummary(content, ""),
+        generateInterest(content, ""),
+      ]);
+      console.log(`[SUMMARIZE] AI content generated successfully`);
+      console.log(`[SUMMARIZE] - Tags: ${tags}`);
+      console.log(`[SUMMARIZE] - Summary length: ${summary.length}`);
+      console.log(`[SUMMARIZE] - Interest length: ${interest.length}`);
+    }
 
     // Build formatted description with emojis
     let description = "";
@@ -224,7 +250,9 @@ export async function handleSummarizeCommand(url: string) {
           description: description,
           timestamp: new Date().toISOString(),
           footer: {
-            text: "CuraBot - AI-Powered Summarization",
+            text: debug
+              ? "CuraBot - DEBUG MODE (Mock Data)"
+              : "CuraBot - AI-Powered Summarization",
           },
         },
       ],

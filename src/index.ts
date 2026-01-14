@@ -53,6 +53,13 @@ app.post(
   verifyKeyMiddleware(process.env.PUBLIC_KEY!),
   async (req: Request, res: Response) => {
     const { type, data, token, application_id } = req.body;
+    console.log(
+      `[INTERACTION] Received interaction data: ${JSON.stringify(
+        req.body,
+        null,
+        2
+      )}`
+    );
     console.log(`[INTERACTION] Received interaction type: ${type}`);
 
     // Handle verification requests
@@ -260,7 +267,10 @@ app.post(
       if (name === "summarize") {
         console.log(`[COMMAND] Received /summarize command`);
         const url = options?.find((opt: any) => opt.name === "url")?.value;
+        const debug =
+          options?.find((opt: any) => opt.name === "debug")?.value || false;
         console.log(`[COMMAND] URL parameter: ${url}`);
+        console.log(`[COMMAND] Debug parameter: ${debug}`);
 
         if (!url) {
           console.error(`[COMMAND] URL parameter missing`);
@@ -287,7 +297,7 @@ app.post(
           try {
             console.log(`📥 Processing article: ${url}`);
 
-            const response = await handleSummarizeCommand(url);
+            const response = await handleSummarizeCommand(url, debug);
 
             console.log(`✅ Summary generated, sending to Discord`);
 
