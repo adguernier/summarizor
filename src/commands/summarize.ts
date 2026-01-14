@@ -147,10 +147,14 @@ async function generateInterest(
 
 // Command handler
 export async function handleSummarizeCommand(url: string) {
+  console.log(`[SUMMARIZE] Starting summarization for URL: ${url}`);
+
   // Validate URL format
   try {
     new URL(url);
+    console.log(`[SUMMARIZE] URL validation passed`);
   } catch (error) {
+    console.error(`[SUMMARIZE] URL validation failed:`, error);
     return {
       content: "❌ Invalid URL format. Please provide a valid URL.",
       flags: 64, // EPHEMERAL flag
@@ -159,18 +163,27 @@ export async function handleSummarizeCommand(url: string) {
 
   // Check if OpenAI API key is configured
   if (!process.env.OPENAI_API_KEY) {
+    console.error(`[SUMMARIZE] OpenAI API key not configured`);
     return {
       content:
         "❌ OpenAI API key not configured. Please set OPENAI_API_KEY in your environment variables.",
       flags: 64,
     };
   }
+  console.log(`[SUMMARIZE] OpenAI API key is configured`);
 
   try {
     // Fetch article content
+    console.log(`[SUMMARIZE] Fetching article content...`);
     const { title, content } = await fetchArticleContent(url);
+    console.log(
+      `[SUMMARIZE] Article fetched - Title: ${title}, Content length: ${content.length}`
+    );
 
     if (!content || content.length < 100) {
+      console.warn(
+        `[SUMMARIZE] Insufficient content extracted (length: ${content.length})`
+      );
       return {
         content: "❌ Unable to extract sufficient content from this URL.",
         flags: 64,
@@ -178,11 +191,18 @@ export async function handleSummarizeCommand(url: string) {
     }
 
     // Generate tags, summary and interest explanation in parallel
+    console.log(
+      `[SUMMARIZE] Generating AI content (tags, summary, interest)...`
+    );
     const [tags, summary, interest] = await Promise.all([
       generateTags(content, title),
       generateSummary(content, ""),
       generateInterest(content, ""),
     ]);
+    console.log(`[SUMMARIZE] AI content generated successfully`);
+    console.log(`[SUMMARIZE] - Tags: ${tags}`);
+    console.log(`[SUMMARIZE] - Summary length: ${summary.length}`);
+    console.log(`[SUMMARIZE] - Interest length: ${interest.length}`);
 
     // Build formatted description with emojis
     let description = "";
@@ -193,8 +213,10 @@ export async function handleSummarizeCommand(url: string) {
 
     // Store URL and tags for button interactions (to avoid custom_id length limit)
     const urlId = storeUrlAndTags(url, tags);
+    console.log(`[SUMMARIZE] URL stored with ID: ${urlId}`);
+    console.log(`[SUMMARIZE] Building response object...`);
 
-    return {
+    const response = {
       embeds: [
         {
           title: title,
@@ -226,8 +248,20 @@ export async function handleSummarizeCommand(url: string) {
         },
       ],
     };
+
+    console.log(`[SUMMARIZE] Response object built successfully`);
+    console.log(`[SUMMARIZE] Returning response with embed and components`);
+    return response;
   } catch (error) {
-    console.error("Error summarizing article:", error);
+    console.error("[SUMMARIZE] Error summarizing article:", error);
+    if (axios.isAxiosError(error)) {
+      console.error("[SUMMARIZE] Axios error details:", {
+        message: error.message,
+        code: error.code,
+        response: error.response?.status,
+        responseData: error.response?.data,
+      });
+    }
     return {
       content: `❌ Failed to summarize the article: ${
         error instanceof Error ? error.message : "Unknown error"

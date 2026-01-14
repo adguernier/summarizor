@@ -53,9 +53,11 @@ app.post(
   verifyKeyMiddleware(process.env.PUBLIC_KEY!),
   async (req: Request, res: Response) => {
     const { type, data, token, application_id } = req.body;
+    console.log(`[INTERACTION] Received interaction type: ${type}`);
 
     // Handle verification requests
     if (type === InteractionType.PING) {
+      console.log(`[INTERACTION] PING received, responding with PONG`);
       return res.send({ type: InteractionResponseType.PONG });
     }
 
@@ -256,9 +258,12 @@ app.post(
       const { name, options } = data;
 
       if (name === "summarize") {
+        console.log(`[COMMAND] Received /summarize command`);
         const url = options?.find((opt: any) => opt.name === "url")?.value;
+        console.log(`[COMMAND] URL parameter: ${url}`);
 
         if (!url) {
+          console.error(`[COMMAND] URL parameter missing`);
           return res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
@@ -269,9 +274,13 @@ app.post(
         }
 
         // Defer the response since AI processing might take time
+        console.log(`[COMMAND] Sending deferred response...`);
         res.send({
           type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
         });
+        console.log(
+          `[COMMAND] Deferred response sent, starting async processing`
+        );
 
         // Process the command asynchronously and send follow-up
         (async () => {
