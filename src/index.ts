@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Simulate delay for testing (set to 0 to disable, or e.g., 2000 for 2 seconds)
-const SIMULATED_DELAY_MS = 5000;
+const SIMULATED_DELAY_MS = 0;
 
 // Helper function to simulate delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
