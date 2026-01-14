@@ -13,11 +13,25 @@ import axios from "axios";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Simulate delay for testing (set to 0 to disable, or e.g., 2000 for 2 seconds)
+const SIMULATED_DELAY_MS = 5000;
+
+// Helper function to simulate delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 app.post(
   "/interactions",
   verifyKeyMiddleware(process.env.PUBLIC_KEY!),
-  (req, res) => {
+  async (req, res) => {
     const interaction = req.body;
+
+    // Simulate delay if configured
+    if (SIMULATED_DELAY_MS > 0) {
+      console.log(`[DEBUG] Simulating ${SIMULATED_DELAY_MS}ms delay...`);
+      await delay(SIMULATED_DELAY_MS);
+      console.log(`[DEBUG] Delay complete, responding now`);
+    }
+
     if (interaction.type === InteractionType.APPLICATION_COMMAND) {
       res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -307,7 +321,33 @@ async function updateMessage(
           });
         }
 
-        // Defer the response since AI processing might take time
+        // In debug mode, we can respond immediately since there are no external calls
+        if (debug) {
+          console.log(
+            `[COMMAND] Debug mode - responding immediately without deferral`
+          );
+          try {
+            const response = await handleSummarizeCommand(url, debug);
+            console.log(`[COMMAND] Debug response generated, sending directly`);
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: response,
+            });
+          } catch (error) {
+            console.error(`[COMMAND] Error in debug mode:`, error);
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: {
+                content: `❌ Debug mode error: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`,
+                flags: 64,
+              },
+            });
+          }
+        }
+
+        // Normal mode: Defer the response since AI processing might take time
         console.log(`[COMMAND] Sending deferred response...`);
         res.send({
           type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
