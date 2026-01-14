@@ -23,7 +23,12 @@ export async function discordRequest(endpoint: string, options: any = {}) {
     },
     data: options.body,
   });
-
+  console.log(
+    `🔗 Discord API ${options.method || "GET"} ${endpoint} - Status: ${
+      response.status
+    }`
+  );
+  console.log("Response data:", response.data);
   return response;
 }
 
