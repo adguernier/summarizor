@@ -19,6 +19,7 @@ async function sendFollowUp(
   data: any
 ) {
   const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
+  console.log(`[FOLLOW-UP] Sending follow-up to URL: ${url}`);
   try {
     await axios.post(url, data, {
       headers: {
