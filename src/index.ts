@@ -48,7 +48,7 @@ async function handleRegenerateButton(
   });
 
   // Regenerate summary
-  (async () => {
+  const asyncWork = (async () => {
     try {
       console.log(`🔄 Regenerating summary for: ${data.url}`);
       const response = await handleSummarizeCommand(data.url);
@@ -58,6 +58,8 @@ async function handleRegenerateButton(
       console.error("❌ Error regenerating:", error);
     }
   })();
+  
+  waitUntil(asyncWork);
 }
 
 // Handle edit button click
@@ -181,7 +183,7 @@ async function handleEditModalSubmit(
   });
 
   // Update the message with edited content
-  (async () => {
+  const asyncWork = (async () => {
     try {
       console.log(`✏️ Updating summary with user edits for: ${storedData.url}`);
 
@@ -229,6 +231,8 @@ async function handleEditModalSubmit(
       console.error("❌ Error updating with edits:", error);
     }
   })();
+  
+  waitUntil(asyncWork);
 }
 
 // Handle modal submit interactions
