@@ -15,10 +15,12 @@ A Discord bot that automatically summarizes IT articles and blog posts using Ope
 ## Prerequisites
 
 - **Node.js** >= 18
-- **npm** or **yarn**
+- **npm**
 - **Discord Application** with bot token
 - **OpenAI API Key**
 - **ngrok** or similar service for local development
+- **Docker** and **Docker Compose** for local Redis server
+- Optional: **Upstash Redis** account for production Redis
 
 ## Setup
 
@@ -26,6 +28,13 @@ A Discord bot that automatically summarizes IT articles and blog posts using Ope
 
 ```bash
 npm install
+```
+
+### Run a Local Redis Server (for development)
+Using Docker Compose, you can quickly spin up a local Redis server:
+
+```bash
+docker-compose up -d
 ```
 
 ### 2. Create a Discord Application
@@ -62,8 +71,9 @@ npm install
    # OpenAI Configuration
    OPENAI_API_KEY=your_openai_api_key
 
-   # Server Configuration
-   PORT=3000
+   # Redis Configuration (optional, for production)
+   UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
+   UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
    ```
 
    **Where to find these values:**
@@ -73,6 +83,7 @@ npm install
    - `PUBLIC_KEY`: Discord Developer Portal > Your App > General Information > Public Key
    - `GUILD_ID`: Right-click your Discord server > Copy Server ID (requires Developer Mode)
    - `OPENAI_API_KEY`: [OpenAI API Keys](https://platform.openai.com/api-keys)
+   - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`: From your Upstash Redis database dashboard (if using Upstash)
 
 ### 4. Set Up ngrok (for local development)
 
@@ -109,6 +120,8 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
+Then run ngrok as described above to expose it publicly.
+
 ### Register Commands with Discord
 
 After making changes to commands, register them with Discord:
@@ -118,54 +131,6 @@ npm run register
 ```
 
 **Note:** If you set `GUILD_ID`, commands will be registered to that specific server (instant). Without it, commands are registered globally (takes up to 1 hour to propagate).
-
-### Project Structure
-
-```
-curabot/
-├── src/
-│   ├── commands/
-│   │   └── summarize.ts       # Command definition and handler
-│   ├── utils/
-│   │   ├── discord.ts         # Discord API helpers
-│   │   └── urlStore.ts        # In-memory storage for button interactions
-│   ├── index.ts               # Main Express server
-│   └── register-commands.ts   # Command registration script
-├── .env                       # Environment variables (not in git)
-├── .env.example              # Example environment file
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## How It Works
-
-### Architecture
-
-- **HTTP Interactions**: Uses Discord's HTTP interactions (not Gateway/WebSocket)
-- **Express Server**: Handles webhook requests from Discord
-- **OpenAI Integration**:
-  - Extracts article content using axios and cheerio
-  - Generates tags automatically
-  - Creates summaries and "why it's interesting" sections
-  - Runs AI calls in parallel for performance
-
-### Workflow
-
-1. User runs `/summarize url:https://example.com` in Discord
-2. Discord sends interaction to your webhook endpoint
-3. Bot defers the response (AI processing takes time)
-4. Bot fetches article content and generates:
-   - Automatic tags
-   - Summary (3-4 sentences)
-   - "Why it's interesting" explanation
-5. Bot sends formatted embed with buttons
-6. User can click "Regenerate" or "Edit" buttons
-
-### Button Interactions
-
-- **Regenerate**: Fetches and analyzes the article again with new AI-generated content
-- **Edit**: Opens a modal where users can manually edit the tag, summary, and conclusion
 
 ## Usage
 
@@ -184,42 +149,6 @@ The bot will:
 3. Create a summary
 4. Explain why it's interesting
 5. Display everything in a formatted embed with interactive buttons
-
-## Scripts
-
-| Command            | Description                           |
-| ------------------ | ------------------------------------- |
-| `npm run dev`      | Start development server with ts-node |
-| `npm run build`    | Compile TypeScript to JavaScript      |
-| `npm start`        | Run compiled JavaScript (production)  |
-| `npm run register` | Register/update commands with Discord |
-| `npm run watch`    | Watch mode for TypeScript compilation |
-
-## Production Deployment
-
-### Build and Run
-
-```bash
-# Build TypeScript
-npm run build
-
-# Start production server
-npm start
-```
-
-### Environment Considerations
-
-- Use a proper domain with HTTPS (not ngrok)
-- Set up environment variables on your hosting platform
-- Consider using a database instead of in-memory storage for URL/tag persistence
-- Use global command registration (omit `GUILD_ID`)
-
-### Recommended Platforms
-
-- **Railway**: Easy deployment with automatic HTTPS
-- **Heroku**: Classic PaaS with good Discord bot support
-- **Fly.io**: Modern platform with edge deployment
-- **DigitalOcean App Platform**: Simple and reliable
 
 ## Troubleshooting
 
@@ -241,15 +170,7 @@ npm start
 1. Check that `npm run dev` is running
 2. Verify ngrok tunnel is active
 3. Check server logs for errors
-4. Ensure `OPENAI_API_KEY` is valid
-
-### "Unable to extract content" error
-
-- Some websites block scrapers or require JavaScript
-- Try a different article URL
-- Check if the site has anti-bot protection
-
-## API Costs
+4. Ensure `OPENAI_API_KEY` is valid## API Costs
 
 ### OpenAI Usage
 
@@ -261,18 +182,6 @@ The bot makes 3 OpenAI API calls per summarization:
 
 **Estimated cost per summary:** ~$0.001 - $0.002 (using GPT-3.5-turbo)
 
-### Rate Limiting
-
-Consider implementing rate limits to control costs:
-
-- Per-user limits
-- Server-wide cooldowns
-- OpenAI API quotas
-
-## Contributing
-
-Feel free to submit issues or pull requests!
-
 ## License
 
-ISC
+MIT
