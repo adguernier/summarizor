@@ -162,11 +162,11 @@ async function generateSummary(content: string, tags: string): Promise<string> {
       {
         role: "system",
         content:
-          "You are a technical content summarizer. Create concise, informative summaries of technical articles.",
+          "You are a technical content summarizer for developers. Write direct, technical summaries without meta-commentary. Never start with phrases like 'The article discusses', 'This article', 'The author explains', etc. Start immediately with the technical content.",
       },
       {
         role: "user",
-        content: `Summarize this article in 3-4 sentences focusing on key technical points:\n\n${content}`,
+        content: `Write a concise 3-4 sentence summary focusing on the core technical concepts, implementations, or solutions. Start directly with the technical information:\n\n${content}`,
       },
     ],
     max_tokens: 300,
@@ -187,13 +187,13 @@ async function generateInterest(
       {
         role: "system",
         content:
-          "You are a technical content analyst. Explain why articles are interesting and relevant.",
+          "You are a technical content analyst for developers. Explain the practical value and relevance directly. Never start with 'This article', 'The content', 'It is interesting', etc. Be direct and specific about technical benefits, use cases, or learning opportunities.",
       },
       {
         role: "user",
-        content: `Based on this article content and the tags "${tags}", explain in 2-3 sentences why this is interesting and relevant:\n\n${content.substring(
+        content: `Based on the tags "${tags}", explain in 2-3 sentences why this is technically valuable for developers. Focus on practical applications, skills gained, or problems solved:\n\n${content.substring(
           0,
-          3000
+          3000,
         )}`,
       },
     ],
