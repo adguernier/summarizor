@@ -30,7 +30,7 @@ async function handleRegenerateButton(
   res: Response
 ) {
   const urlId = customId.replace("regenerate_", "");
-  const data = retrieveData(urlId);
+  const data = await retrieveData(urlId);
 
   if (!data) {
     return res.send({
@@ -63,9 +63,9 @@ async function handleRegenerateButton(
 }
 
 // Handle edit button click
-function handleEditButton(customId: string, res: Response) {
+async function handleEditButton(customId: string, res: Response) {
   const urlId = customId.replace("edit_", "");
-  const data = retrieveData(urlId);
+  const data = await retrieveData(urlId);
 
   if (!data) {
     return res.send({
@@ -159,7 +159,7 @@ async function handleEditModalSubmit(
   res: Response
 ) {
   const urlId = customId.replace("edit_modal_", "");
-  const storedData = retrieveData(urlId);
+  const storedData = await retrieveData(urlId);
 
   if (!storedData) {
     return res.send({

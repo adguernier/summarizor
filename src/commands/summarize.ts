@@ -262,7 +262,7 @@ export async function handleSummarizeCommand(
       `📖 **Summary:**\n${summary}\n\n` +
       `💡 **Why it's interesting:**\n${interest}`;
 
-    const urlId = storeUrlAndTags(url, tags);
+    const urlId = await storeUrlAndTags(url, tags);
     console.log(`[SUMMARIZE] URL stored with ID: ${urlId}`);
     console.log(`[SUMMARIZE] Returning mock response - no external calls made`);
 
@@ -340,7 +340,7 @@ export async function handleSummarizeCommand(
     description += `💡 **Why it's interesting:**\n${interest}`;
 
     // Store URL and tags for button interactions (to avoid custom_id length limit)
-    const urlId = storeUrlAndTags(url, tags);
+    const urlId = await storeUrlAndTags(url, tags);
     console.log(`[SUMMARIZE] URL stored with ID: ${urlId}`);
     console.log(`[SUMMARIZE] Building response object...`);
 
