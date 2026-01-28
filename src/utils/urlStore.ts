@@ -34,9 +34,14 @@ export async function storeUrlAndTags(
   const data: StoredData = { url, tags };
 
   if (redis) {
-    // Store in Redis with 24 hour TTL
-    await redis.setex(id, 86400, JSON.stringify(data));
-    console.log(`[URLSTORE] Stored data in Redis with ID: ${id}`);
+    try {
+      // Store in Redis with 24 hour TTL
+      await redis.setex(id, 86400, JSON.stringify(data));
+      console.log(`[URLSTORE] Stored data in Redis with ID: ${id}`);
+    } catch (error) {
+      console.error(`[URLSTORE] Redis error, falling back to memory:`, error);
+      dataStore.set(id, data);
+    }
   } else {
     // Fallback to in-memory for local dev
     dataStore.set(id, data);
@@ -50,13 +55,23 @@ export async function retrieveData(
   id: string,
 ): Promise<StoredData | undefined> {
   if (redis) {
-    const data = await redis.get<string>(id);
-    if (data) {
-      console.log(`[URLSTORE] Retrieved data from Redis for ID: ${id}`);
-      return JSON.parse(data);
+    try {
+      const data = await redis.get<string>(id);
+      if (data) {
+        console.log(`[URLSTORE] Retrieved data from Redis for ID: ${id}`);
+        return JSON.parse(data);
+      }
+      console.log(`[URLSTORE] No data found in Redis for ID: ${id}`);
+      return undefined;
+    } catch (error) {
+      console.error(`[URLSTORE] Redis error, checking memory fallback:`, error);
+      // Try memory fallback
+      const data = dataStore.get(id);
+      if (data) {
+        console.log(`[URLSTORE] Found data in memory fallback for ID: ${id}`);
+      }
+      return data;
     }
-    console.log(`[URLSTORE] No data found in Redis for ID: ${id}`);
-    return undefined;
   } else {
     // Fallback to in-memory for local dev
     const data = dataStore.get(id);
