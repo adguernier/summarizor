@@ -26,10 +26,17 @@ export const SUMMARIZE_COMMAND = {
   ],
 };
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client (only when needed)
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 // Fetch and extract article content
 async function fetchArticleContent(
@@ -131,7 +138,7 @@ async function fetchArticleContent(
 
 // Generate tags using OpenAI
 async function generateTags(content: string, title: string): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [
       {
@@ -143,7 +150,7 @@ async function generateTags(content: string, title: string): Promise<string> {
         role: "user",
         content: `Based on this title and content, generate relevant technical tags:\n\nTitle: ${title}\n\nContent: ${content.substring(
           0,
-          2000
+          2000,
         )}`,
       },
     ],
@@ -156,7 +163,7 @@ async function generateTags(content: string, title: string): Promise<string> {
 
 // Generate summary using OpenAI
 async function generateSummary(content: string, tags: string): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [
       {
@@ -181,7 +188,7 @@ async function generateInterest(
   content: string,
   tags: string
 ): Promise<string> {
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [
       {
