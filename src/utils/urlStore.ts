@@ -56,10 +56,15 @@ export async function retrieveData(
 ): Promise<StoredData | undefined> {
   if (redis) {
     try {
-      const data = await redis.get<string>(id);
+      const data = await redis.get(id);
       if (data) {
         console.log(`[URLSTORE] Retrieved data from Redis for ID: ${id}`);
-        return JSON.parse(data);
+        // Handle both string and object responses from Upstash
+        if (typeof data === "string") {
+          return JSON.parse(data);
+        } else if (typeof data === "object") {
+          return data as StoredData;
+        }
       }
       console.log(`[URLSTORE] No data found in Redis for ID: ${id}`);
       return undefined;
