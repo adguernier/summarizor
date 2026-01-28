@@ -277,40 +277,41 @@ async function handleSummarizeNormalMode(
   token: string,
   res: Response
 ) {
-  console.log(
-    `[COMMAND] Processing with deferred response (Vercel-compatible)...`
-  );
+  console.log(`[COMMAND] Sending deferred response...`);
+  res.send({
+    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
+  });
+  console.log(`[COMMAND] Deferred response sent, starting async processing`);
 
-  // On Vercel, we must complete ALL work before sending the response
-  // The function terminates after res.send(), so we can't do async work after
+  // Process the command asynchronously and send follow-up
+  (async () => {
+    try {
+      console.log(`📥 Processing article: ${url}`);
 
-  try {
-    console.log(`📥 Processing article: ${url}`);
+      const response = await handleSummarizeCommand(url, false);
 
-    // Do all the work FIRST
-    const response = await handleSummarizeCommand(url, false);
+      console.log(`✅ Summary generated, sending to Discord`);
 
-    console.log(`✅ Summary generated`);
+      // Send the actual response as a follow-up
+      await sendFollowUp(application_id, token, response);
 
-    // Now send it directly as an immediate response
-    // This works because all processing is done
-    return res.send({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: response,
-    });
-  } catch (error) {
-    console.error("❌ Error processing command:", error);
+      console.log(`✅ Response sent successfully`);
+    } catch (error) {
+      console.error("❌ Error processing command:", error);
 
-    return res.send({
-      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-      data: {
-        content: `❌ An error occurred while processing your request: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-        flags: 64,
-      },
-    });
-  }
+      // Send error message as follow-up
+      try {
+        await sendFollowUp(application_id, token, {
+          content: `❌ An error occurred while processing your request: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+          flags: 64,
+        });
+      } catch (followUpError) {
+        console.error("❌ Failed to send error follow-up:", followUpError);
+      }
+    }
+  })();
 }
 
 // Handle summarize command
