@@ -285,16 +285,16 @@ async function handleSummarizeNormalMode(
   console.log(`[COMMAND] Deferred response sent, starting async processing`);
 
   // Process the command asynchronously and send follow-up
-  (async () => {
+  const asyncWork = (async () => {
     try {
       console.log(`📥 Processing article: ${url}`);
 
-      const response = waitUntil(handleSummarizeCommand(url, false));
+      const response = await handleSummarizeCommand(url, false);
 
       console.log(`✅ Summary generated, sending to Discord`);
 
       // Send the actual response as a follow-up
-      waitUntil(sendFollowUp(application_id, token, response));
+      await sendFollowUp(application_id, token, response);
 
       console.log(`✅ Response sent successfully`);
     } catch (error) {
@@ -302,19 +302,19 @@ async function handleSummarizeNormalMode(
 
       // Send error message as follow-up
       try {
-        waitUntil(
-          sendFollowUp(application_id, token, {
-            content: `❌ An error occurred while processing your request: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`,
-            flags: 64,
-          }),
-        );
+        await sendFollowUp(application_id, token, {
+          content: `❌ An error occurred while processing your request: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+          flags: 64,
+        });
       } catch (followUpError) {
         console.error("❌ Failed to send error follow-up:", followUpError);
       }
     }
   })();
+  
+  waitUntil(asyncWork);
 }
 
 // Handle summarize command
