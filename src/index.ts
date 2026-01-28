@@ -9,6 +9,7 @@ import { handleSummarizeCommand } from "./commands/summarize";
 import { retrieveData } from "./utils/urlStore";
 import { discordRequest } from "./utils/discord";
 import axios from "axios";
+import { waitUntil } from "@vercel/functions";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -288,12 +289,12 @@ async function handleSummarizeNormalMode(
     try {
       console.log(`📥 Processing article: ${url}`);
 
-      const response = await handleSummarizeCommand(url, false);
+      const response = waitUntil(handleSummarizeCommand(url, false));
 
       console.log(`✅ Summary generated, sending to Discord`);
 
       // Send the actual response as a follow-up
-      await sendFollowUp(application_id, token, response);
+      waitUntil(sendFollowUp(application_id, token, response));
 
       console.log(`✅ Response sent successfully`);
     } catch (error) {
@@ -301,12 +302,14 @@ async function handleSummarizeNormalMode(
 
       // Send error message as follow-up
       try {
-        await sendFollowUp(application_id, token, {
-          content: `❌ An error occurred while processing your request: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-          flags: 64,
-        });
+        waitUntil(
+          sendFollowUp(application_id, token, {
+            content: `❌ An error occurred while processing your request: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+            flags: 64,
+          }),
+        );
       } catch (followUpError) {
         console.error("❌ Failed to send error follow-up:", followUpError);
       }
